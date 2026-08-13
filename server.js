@@ -19,6 +19,7 @@ function tieneIncidencia(reporte) {
 const dbStore = require('./db');
 const { weekKey, weekRange, recentWeeks } = require('./utils');
 const { buildPDF } = require('./pdf');
+const ai = require('./ai');
 
 // Sharp es opcional: si no carga, se guardan las imágenes originales.
 let sharp = null;
@@ -118,11 +119,15 @@ app.post('/api/reportes', upload.any(), async (req, res) => {
       createdAt: now.toISOString(),
       secciones,
       sugerencias,
+      iaEstado: ai.isEnabled() ? 'pendiente' : 'off',
     };
 
     const data = dbStore.load();
     data.reportes.push(reporte);
     await dbStore.save(data);
+
+    // Análisis con IA en segundo plano (no bloquea la respuesta).
+    ai.enqueue(reporte.id);
 
     res.json({ ok: true, id: reporte.id, semana: reporte.semana });
   } catch (e) {
@@ -170,11 +175,14 @@ app.get('/api/admin/estado', requireAdmin, (req, res) => {
   }
   const filas = SUCURSALES.map((suc) => {
     const r = porSucursal[suc];
+    const alertaIA = r ? Object.values(r.secciones || {}).some((s) => s.ia && (s.ia.estado === 'atencion' || s.ia.estado === 'falla')) : false;
     return {
       sucursal: suc,
       region: REGION_DE[suc] || '',
       reporto: !!r,
       incidencia: r ? tieneIncidencia(r) : false,
+      iaEstado: r ? (r.iaEstado || 'off') : null, // pendiente | listo | error | off
+      alertaIA,
       id: r ? r.id : null,
       createdAt: r ? r.createdAt : null,
       responsable: r ? r.responsable : null,
@@ -192,7 +200,8 @@ app.get('/api/admin/estado', requireAdmin, (req, res) => {
     total: SUCURSALES.length,
     completadas: filas.filter((f) => f.reporto).length,
     incidencias: filas.filter((f) => f.incidencia).length,
-    empleados: filas.filter((f) => f.reporto).length, // reportes recibidos
+    alertasIA: filas.filter((f) => f.alertaIA).length,
+    iaEnabled: ai.isEnabled(),
     filas,
     grupos,
   });
@@ -242,6 +251,18 @@ app.get('/api/admin/reportes/:id/pdf', requireAdmin, (req, res) => {
   buildPDF(r, res);
 });
 
+// Reanalizar un reporte con IA (solo admin)
+app.post('/api/admin/reportes/:id/reanalizar', requireAdmin, async (req, res) => {
+  if (!ai.isEnabled()) return res.status(400).json({ error: 'IA no configurada (falta GEMINI_API_KEY)' });
+  const data = dbStore.load();
+  const r = data.reportes.find((x) => x.id === req.params.id);
+  if (!r) return res.status(404).json({ error: 'No encontrado' });
+  r.iaEstado = 'pendiente';
+  await dbStore.save(data);
+  ai.enqueue(r.id);
+  res.json({ ok: true });
+});
+
 // ============================ ESTÁTICOS ============================
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -251,4 +272,5 @@ app.listen(PORT, () => {
   if (ADMIN_PASSWORD === 'cambia-esta-clave') {
     console.warn('⚠  Estás usando la contraseña de administrador por defecto. Define ADMIN_PASSWORD.');
   }
+  ai.startupPending();
 });

@@ -76,6 +76,25 @@ Luego abre `http://localhost:3000`.
 
 ---
 
+## 4b. Análisis de fotos con IA (opcional — Gemini free)
+
+La app puede revisar automáticamente las fotos con IA para detectar desperfectos,
+fallas o elementos faltantes por sección.
+
+1. Consigue una API key **gratis** en https://aistudio.google.com/apikey
+2. Define la variable de entorno `GEMINI_API_KEY` (en EasyPanel → Environment, o local).
+3. Redeploy. Al recibir un reporte, la IA lo analiza en segundo plano (no retrasa el envío).
+4. En el panel, cada sección muestra el veredicto (se ve bien / requiere revisión / falla)
+   con hallazgos y faltantes. Las sucursales con alerta se marcan con **◆ IA: revisar**.
+   Puedes forzar un nuevo análisis con el botón **Reanalizar IA** dentro de cada reporte.
+
+Variables relacionadas (opcionales): `GEMINI_MODEL` (por defecto `gemini-2.0-flash`),
+`AI_DELAY_MS` (pausa entre llamadas, por defecto 4500 ms para respetar el free tier).
+Los criterios que revisa la IA en cada sección se editan en `ai.js` (objeto `CHECKLIST`).
+Sin `GEMINI_API_KEY`, la app funciona igual pero sin análisis.
+
+---
+
 ## 5. Notas técnicas
 
 - **Sin base de datos externa**: usa un archivo `db.json` dentro de `DATA_DIR`.

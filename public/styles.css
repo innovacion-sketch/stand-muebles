@@ -20,8 +20,10 @@
 
   --blue:  #5b8cff;   /* activo / reportó / funcional */
   --amber: #ff7a45;   /* incidencia / no funcional */
+  --ia:    #b98cff;   /* acentos de IA */
   --amber-dim: rgba(255,122,69,0.14);
   --blue-dim:  rgba(91,140,255,0.14);
+  --ia-dim:    rgba(185,140,255,0.14);
 
   --focus: 0 0 0 2px rgba(91,140,255,0.6);
 
@@ -145,6 +147,25 @@ a { color: inherit; }
 .branch.pending .name { color: var(--ink-3); }
 .branch.pending .dot { background: transparent; border: 1.5px solid var(--ink-4); }
 .branch.filler { background: var(--panel); pointer-events: none; }
+.branch .tag.ia { color: var(--ia); }
+.branch .tag.pend { color: var(--ink-3); }
+
+/* Bloque de veredicto de IA en el detalle */
+.ia-box { margin-top: 12px; border: 1px solid var(--line-2); border-left-width: 3px; border-radius: 4px; padding: 11px 13px; background: var(--panel-2); }
+.ia-box.ia-ok { border-left-color: var(--blue); }
+.ia-box.ia-atencion { border-left-color: var(--amber); }
+.ia-box.ia-falla { border-left-color: var(--amber); background: var(--amber-dim); }
+.ia-box.ia-error { border-left-color: var(--ink-4); }
+.ia-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ia-badge { font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--ia); }
+.ia-box.ia-atencion .ia-badge, .ia-box.ia-falla .ia-badge { color: var(--amber); }
+.ia-box.ia-ok .ia-badge { color: var(--blue); }
+.ia-conf { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.ia-res { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.ia-list { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; }
+.ia-list b { color: var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.ia-list ul { margin: 4px 0 0; padding-left: 18px; }
+.ia-list li { margin: 2px 0; }
 
 /* ------------------------------ Cards --------------------------------- */
 .card {

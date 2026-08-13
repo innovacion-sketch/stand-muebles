@@ -1,4 +1,6 @@
 let SECCIONES_DEF = [];
+let IA_ENABLED = false;
+let REPORTE_ACTUAL = null;
 const COLS = 5; // columnas de la cuadrícula (coincide con el CSS en desktop)
 
 // ------------------------------- Reloj -------------------------------
@@ -57,6 +59,7 @@ async function cargarEstado(semana) {
     sel.addEventListener('change', () => cargarEstado(sel.value));
   }
   document.getElementById('rango').textContent = data.rango;
+  IA_ENABLED = !!data.iaEnabled;
 
   document.getElementById('s-ok').textContent = data.completadas;
   document.getElementById('s-ok-of').textContent = ` /${data.total}`;
@@ -91,16 +94,36 @@ async function cargarEstado(semana) {
 function celdaSucursal(f) {
   const cls = f.reporto ? 'reported' : 'pending';
   const estado = f.reporto ? 'Reportó' : 'Pendiente';
-  const tag = f.incidencia
-    ? '<div class="tag">! Incidencia</div>'
-    : (f.reporto ? '' : '');
+  let tags = '';
+  if (f.incidencia) tags += '<div class="tag">! Incidencia</div>';
+  if (f.alertaIA) tags += '<div class="tag ia">◆ IA: revisar</div>';
+  else if (f.reporto && f.iaEstado === 'pendiente') tags += '<div class="tag pend">IA analizando…</div>';
   const idAttr = f.reporto ? ` data-id="${f.id}"` : '';
   return `
     <div class="branch ${cls}"${idAttr}>
       <span class="dot"></span>
       <div class="name">${escapeHtml(f.sucursal)}</div>
       <div class="st">${estado}</div>
-      ${tag}
+      ${tags}
+    </div>`;
+}
+
+// Bloque visual del veredicto de IA de una sección.
+function renderIA(ia) {
+  if (!ia) return '';
+  if (ia.estado === 'error') {
+    return `<div class="ia-box ia-error"><span class="ia-badge">IA · no disponible</span></div>`;
+  }
+  const etiqueta = { ok: 'Se ve bien', atencion: 'Requiere revisión', falla: 'Falla detectada' }[ia.estado] || ia.estado;
+  const conf = (typeof ia.confianza === 'number') ? ` · ${Math.round(ia.confianza * 100)}% confianza` : '';
+  const lista = (titulo, arr) => (arr && arr.length)
+    ? `<div class="ia-list"><b>${titulo}:</b><ul>${arr.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul></div>` : '';
+  return `
+    <div class="ia-box ia-${ia.estado}">
+      <div class="ia-head"><span class="ia-badge">◆ IA · ${etiqueta}</span><span class="ia-conf">${conf}</span></div>
+      ${ia.resumen ? `<div class="ia-res">${escapeHtml(ia.resumen)}</div>` : ''}
+      ${lista('Hallazgos', ia.hallazgos)}
+      ${lista('Faltantes', ia.faltantes)}
     </div>`;
 }
 
@@ -140,6 +163,16 @@ async function verDetalle(id) {
   const data = await res.json();
   const r = data.reporte;
   SECCIONES_DEF = data.secciones;
+  REPORTE_ACTUAL = r.id;
+
+  const btnRe = document.getElementById('modal-reanalizar');
+  if (IA_ENABLED) {
+    btnRe.classList.remove('hidden');
+    btnRe.textContent = r.iaEstado === 'pendiente' ? 'IA analizando…' : 'Reanalizar IA';
+    btnRe.disabled = r.iaEstado === 'pendiente';
+  } else {
+    btnRe.classList.add('hidden');
+  }
 
   document.getElementById('modal-titulo').textContent = `${r.sucursal} — ${r.semana}`;
   document.getElementById('modal-sub').textContent =
@@ -164,7 +197,8 @@ async function verDetalle(id) {
       ? `<div class="gallery">${fotos.map((f) => `<a href="/api/admin/foto/${f}" target="_blank" rel="noopener"><img src="/api/admin/foto/${f}" loading="lazy" alt="" /></a>`).join('')}</div>`
       : '<p class="muted small">Sin fotos.</p>';
     div.innerHTML = `<div class="head"><h3>${sec.label}</h3>${estadoBadge}</div>${galeria}
-      ${d.comentarios ? `<div class="det-com"><strong>Comentarios:</strong> ${escapeHtml(d.comentarios)}</div>` : ''}`;
+      ${d.comentarios ? `<div class="det-com"><strong>Comentarios:</strong> ${escapeHtml(d.comentarios)}</div>` : ''}
+      ${renderIA(d.ia)}`;
     body.appendChild(div);
   }
   const sug = document.createElement('div');
@@ -182,6 +216,17 @@ function escapeHtml(s) {
 
 document.getElementById('btn-login').addEventListener('click', login);
 document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+document.getElementById('modal-reanalizar').addEventListener('click', async (e) => {
+  if (!REPORTE_ACTUAL) return;
+  const btn = e.currentTarget;
+  btn.disabled = true; btn.textContent = 'Encolando…';
+  try {
+    const res = await fetch(`/api/admin/reportes/${REPORTE_ACTUAL}/reanalizar`, { method: 'POST' });
+    if (!res.ok) throw new Error();
+    btn.textContent = 'IA analizando…';
+    alert('Reanálisis encolado. Vuelve a abrir el reporte en un momento para ver el resultado.');
+  } catch (err) { btn.disabled = false; btn.textContent = 'Reanalizar IA'; alert('No se pudo reanalizar.'); }
+});
 document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal').classList.add('hidden'));
 document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') e.target.classList.add('hidden'); });
 document.getElementById('logout').addEventListener('click', async (e) => {
