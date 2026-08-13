@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>SIDHE / Reporte de stand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-brand">
+      <div class="tb-title">SIDHE <span>/ Reporte de stand</span></div>
+      <div class="tb-sub label">Revisión semanal</div>
+    </div>
+    <nav class="tb-nav">
+      <a class="tb-link dim" href="admin.html">Panel admin →</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- Paso 1: Selección de sucursal -->
+    <section id="paso-sucursal">
+      <div style="padding:20px 0 26px">
+        <div class="label" style="margin-bottom:14px">Cada martes · estado del mueble</div>
+        <h1 style="font-size:clamp(30px,7vw,52px);line-height:1.02">Reporta el estado<br>de tu stand</h1>
+        <p class="lead" style="margin-top:16px">Documenta cada parte del mueble con fotos y observaciones. Toma unos minutos y mantiene tu sucursal en óptimas condiciones.</p>
+      </div>
+
+      <div class="card">
+        <label class="field">
+          <span>Selecciona tu sucursal</span>
+          <select id="sucursal">
+            <option value="">— Elige tu sucursal —</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Responsable del reporte (opcional)</span>
+          <input type="text" id="responsable" placeholder="Ej. Juan Pérez" autocomplete="name" />
+        </label>
+        <button id="btn-empezar" class="btn btn-primary btn-lg btn-block">Empezar reporte →</button>
+      </div>
+    </section>
+
+    <!-- Paso 2: Formulario -->
+    <form id="formulario" class="hidden">
+      <div class="card sticky-info">
+        <span class="avatar" id="avatar">S</span>
+        <div style="min-width:0">
+          <div class="label">Sucursal</div>
+          <div id="sucursal-nombre" class="strong" style="font-size:15px;font-family:var(--font-display)"></div>
+        </div>
+        <button type="button" id="cambiar-sucursal" class="btn btn-ghost btn-sm" style="margin-left:auto">Cambiar</button>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div id="secciones"></div>
+
+      <section class="card">
+        <div class="label" style="margin-bottom:8px">Cierre</div>
+        <h2 style="font-size:18px">Comentarios y sugerencias generales</h2>
+        <p class="muted small" style="margin:6px 0 12px">Observaciones sobre el stand, necesidades o sugerencias de mejora.</p>
+        <textarea id="sugerencias" rows="4" placeholder="Escribe aquí cualquier observación general..."></textarea>
+      </section>
+
+      <div class="submit-bar">
+        <div class="status">Secciones evaluadas · <b id="conteo">0</b></div>
+        <button type="submit" id="btn-enviar" class="btn btn-primary btn-lg">Enviar reporte</button>
+      </div>
+      <div id="progreso" class="muted small hidden" style="margin-top:12px;text-align:center;"></div>
+    </form>
+
+    <!-- Éxito -->
+    <section id="exito" class="card success hidden">
+      <div class="seal" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-size:22px">¡Reporte enviado!</h2>
+      <p class="muted">Tu reporte de la semana <span id="exito-semana" class="mono"></span> quedó registrado correctamente.</p>
+      <button id="btn-otro" class="btn btn-ghost" style="margin-top:18px">Enviar otro reporte</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

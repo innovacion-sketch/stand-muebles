@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>SIDHE / Panel de stands</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="tb-brand">
+      <div class="tb-title">SIDHE <span>/ Panel de stands</span></div>
+      <div class="tb-sub label">Supervisión general</div>
+    </div>
+    <nav class="tb-nav" id="nav" style="visibility:hidden">
+      <a class="tb-link" href="index.html">Formulario →</a>
+      <a class="tb-link dim" id="logout" href="#">Salir →</a>
+    </nav>
+    <div class="tb-right">
+      <div class="ts mono" id="reloj"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Login -->
+    <section id="login" class="container hidden">
+      <div class="card login-box">
+        <div class="label" style="margin-bottom:10px">Acceso restringido</div>
+        <h1 style="font-size:24px;margin-bottom:14px">Panel de administración</h1>
+        <label class="field">
+          <span>Contraseña</span>
+          <input type="password" id="password" placeholder="Ingresa la contraseña" autocomplete="current-password" />
+        </label>
+        <button id="btn-login" class="btn btn-primary btn-lg btn-block">Entrar</button>
+        <div id="login-error" class="error-msg hidden">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
+          Contraseña incorrecta
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel -->
+    <div id="panel" class="wide hidden">
+      <div class="toolbar">
+        <label for="semana">Semana</label>
+        <select id="semana"></select>
+        <span id="rango" class="mono small muted"></span>
+      </div>
+
+      <!-- Stats gigantes -->
+      <div class="stats">
+        <div class="stat-big">
+          <span class="l label">Reportaron</span>
+          <div class="n"><span id="s-ok">0</span><span class="sub" id="s-ok-of"> /0</span></div>
+        </div>
+        <div class="stat-big">
+          <span class="l label">Pendientes</span>
+          <div class="n" id="s-pend">0</div>
+        </div>
+        <div class="stat-big">
+          <span class="l label">Sucursales</span>
+          <div class="n" id="s-total">0</div>
+        </div>
+        <div class="stat-big accent-amber">
+          <span class="l label">Incidencias</span>
+          <div class="n" id="s-inc">0</div>
+        </div>
+      </div>
+
+      <!-- Regiones con cuadrícula de sucursales -->
+      <div id="regiones"></div>
+
+      <!-- Historial -->
+      <section style="margin-top:44px">
+        <div class="region-head">
+          <span class="label">Archivo — historial de reportes</span>
+        </div>
+        <div class="hist" id="historial"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modal de detalle -->
+  <div id="modal" class="modal-bg hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <div style="min-width:0">
+          <div id="modal-titulo" class="strong" style="font-family:var(--font-display);font-size:16px"></div>
+          <div id="modal-sub" class="muted small mono" style="margin-top:3px"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <a id="modal-pdf" class="btn btn-primary btn-sm" href="#">Descargar PDF</a>
+          <button id="modal-close" class="btn btn-ghost btn-sm">Cerrar</button>
+        </div>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
