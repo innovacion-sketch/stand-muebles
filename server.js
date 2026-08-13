@@ -193,6 +193,26 @@ app.get('/api/admin/estado', requireAdmin, (req, res) => {
     nombre: reg.nombre,
     filas: filas.filter((f) => f.region === reg.nombre),
   }));
+
+  // Resumen de alertas de IA de la semana (para el panel).
+  const resumenIA = [];
+  for (const suc of SUCURSALES) {
+    const r = porSucursal[suc];
+    if (!r) continue;
+    const items = [];
+    for (const s of SECCIONES) {
+      const d = r.secciones[s.key];
+      if (d && d.ia && (d.ia.estado === 'atencion' || d.ia.estado === 'falla')) {
+        items.push({
+          seccion: s.label,
+          estado: d.ia.estado,
+          hallazgos: d.ia.hallazgos || [],
+          faltantes: d.ia.faltantes || [],
+        });
+      }
+    }
+    if (items.length) resumenIA.push({ sucursal: suc, region: REGION_DE[suc] || '', id: r.id, items });
+  }
   res.json({
     semana,
     rango: weekRange(semana),
@@ -202,6 +222,8 @@ app.get('/api/admin/estado', requireAdmin, (req, res) => {
     incidencias: filas.filter((f) => f.incidencia).length,
     alertasIA: filas.filter((f) => f.alertaIA).length,
     iaEnabled: ai.isEnabled(),
+    iaPendientes: filas.filter((f) => f.iaEstado === 'pendiente').length,
+    resumenIA,
     filas,
     grupos,
   });

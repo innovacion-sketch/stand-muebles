@@ -67,6 +67,8 @@ async function cargarEstado(semana) {
   document.getElementById('s-total').textContent = data.total;
   document.getElementById('s-inc').textContent = data.incidencias;
 
+  renderResumenIA(data);
+
   const cont = document.getElementById('regiones');
   cont.innerHTML = '';
   data.grupos.forEach((g, i) => {
@@ -89,6 +91,44 @@ async function cargarEstado(semana) {
   cont.querySelectorAll('.branch.reported').forEach((el) => {
     el.addEventListener('click', () => verDetalle(el.dataset.id));
   });
+}
+
+// Resumen de alertas de IA de la semana.
+function renderResumenIA(data) {
+  const sec = document.getElementById('resumen-ia');
+  const cont = document.getElementById('ia-lista');
+  const pend = document.getElementById('ia-pend');
+  if (!data.iaEnabled) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+
+  document.getElementById('ia-count').textContent =
+    data.resumenIA.length === 0 ? 'sin alertas' : `${data.resumenIA.length} sucursal${data.resumenIA.length > 1 ? 'es' : ''}`;
+  pend.textContent = data.iaPendientes ? `· ${data.iaPendientes} en análisis…` : '';
+
+  if (!data.resumenIA.length) {
+    cont.innerHTML = '<div class="ia-ok-empty">✓ Ninguna sucursal requiere revisión según la IA esta semana.</div>';
+    return;
+  }
+
+  cont.innerHTML = '';
+  for (const r of data.resumenIA) {
+    const card = document.createElement('div');
+    card.className = 'ia-summary-card';
+    card.dataset.id = r.id;
+    const items = r.items.map((it) => {
+      const problemas = [...it.hallazgos, ...it.faltantes.map((x) => 'Falta: ' + x)];
+      const cls = it.estado === 'falla' ? 'est-falla' : 'est-aten';
+      return `<div class="ia-item"><span class="sname">${escapeHtml(it.seccion)}</span>
+        <span class="est ${cls}">${it.estado === 'falla' ? 'falla' : 'revisar'}</span>
+        ${problemas.length ? '— ' + escapeHtml(problemas.join('; ')) : ''}</div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="top"><span class="suc">${escapeHtml(r.sucursal)}</span>
+        <span class="mono small muted">${escapeHtml(r.region)} · ${r.items.length} sección(es)</span></div>
+      ${items}`;
+    cont.appendChild(card);
+  }
+  cont.querySelectorAll('.ia-summary-card').forEach((el) => el.addEventListener('click', () => verDetalle(el.dataset.id)));
 }
 
 function celdaSucursal(f) {

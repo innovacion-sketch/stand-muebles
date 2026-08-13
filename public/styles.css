@@ -167,6 +167,19 @@ a { color: inherit; }
 .ia-list ul { margin: 4px 0 0; padding-left: 18px; }
 .ia-list li { margin: 2px 0; }
 
+/* Resumen de alertas de IA de la semana */
+.ia-summary-card { border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 4px;
+  padding: 14px 16px; margin-bottom: 10px; background: var(--panel); cursor: pointer; transition: background .15s; }
+.ia-summary-card:hover { background: rgba(255,255,255,0.035); }
+.ia-summary-card .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ia-summary-card .suc { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+.ia-item { font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.45; }
+.ia-item .sname { color: var(--ink); font-weight: 600; }
+.ia-item .est { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 3px; margin: 0 2px; }
+.ia-item .est-falla { color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent); }
+.ia-item .est-aten { color: var(--ink-2); border: 1px solid var(--line-2); }
+.ia-ok-empty { color: var(--ink-2); font-size: 14px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: 4px; background: var(--panel); }
+
 /* ------------------------------ Cards --------------------------------- */
 .card {
   background: var(--panel); border: 1px solid var(--line); border-radius: 4px;

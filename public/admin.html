@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23000'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%235b8cff' stroke-width='3'/%3E%3C/svg%3E" />
   <title>SIDHE / Panel de stands</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -71,8 +72,17 @@
         </div>
       </div>
 
+      <!-- Resumen de alertas de IA de la semana -->
+      <section id="resumen-ia" class="hidden" style="margin-top:30px">
+        <div class="region-head" style="display:flex;align-items:center;gap:10px">
+          <span class="label">Alertas de IA — <span id="ia-count">0</span></span>
+          <span id="ia-pend" class="mono small muted"></span>
+        </div>
+        <div id="ia-lista"></div>
+      </section>
+
       <!-- Regiones con cuadrícula de sucursales -->
-      <div id="regiones"></div>
+      <div id="regiones" style="margin-top:30px"></div>
 
       <!-- Historial -->
       <section style="margin-top:44px">
