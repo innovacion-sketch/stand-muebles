@@ -207,7 +207,7 @@ a { color: inherit; }
 
 select, input[type=text], input[type=password], textarea {
   width: 100%; padding: 13px 14px; border: 1px solid var(--line-2); border-radius: 4px;
-  font-size: 15.5px; font-family: inherit; background: #050506; color: var(--ink);
+  font-size: 16px; font-family: inherit; background: #050506; color: var(--ink);
   transition: border-color .15s, box-shadow .15s;
 }
 select { appearance: none; -webkit-appearance: none; padding-right: 40px;
