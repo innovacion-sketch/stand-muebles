@@ -149,10 +149,23 @@ function celdaSucursal(f) {
 }
 
 // Bloque visual del veredicto de IA de una sección.
+function motivoIA(err) {
+  const e = (err || '').toLowerCase();
+  if (e.includes('api key not valid') || e.includes('api_key_invalid') || e.includes('invalid_argument')) return 'La API key de Gemini no es válida. Revísala en EasyPanel (Entorno) y da Implementar.';
+  if (e.includes('429') || e.includes('quota') || e.includes('resource_exhausted') || e.includes('rate')) return 'Se alcanzó el límite del plan gratuito de Gemini. Espera unos minutos y usa "Reanalizar IA".';
+  if (e.includes('not found') || e.includes('404') || e.includes('is not found for api version')) return 'El modelo configurado no existe. Revisa la variable GEMINI_MODEL.';
+  if (e.includes('permission') || e.includes('403')) return 'La API key no tiene permiso o la API no está habilitada en tu proyecto de Google.';
+  if (!err) return 'No se pudo analizar (sin detalle). Verifica GEMINI_API_KEY y da "Reanalizar IA".';
+  return 'No se pudo analizar: ' + err;
+}
+
 function renderIA(ia) {
   if (!ia) return '';
   if (ia.estado === 'error') {
-    return `<div class="ia-box ia-error"><span class="ia-badge">IA · no disponible</span></div>`;
+    return `<div class="ia-box ia-error">
+      <span class="ia-badge">IA · no disponible</span>
+      <div class="ia-res">${escapeHtml(motivoIA(ia.error))}</div>
+    </div>`;
   }
   const etiqueta = { ok: 'Se ve bien', atencion: 'Requiere revisión', falla: 'Falla detectada' }[ia.estado] || ia.estado;
   const conf = (typeof ia.confianza === 'number') ? ` · ${Math.round(ia.confianza * 100)}% confianza` : '';
