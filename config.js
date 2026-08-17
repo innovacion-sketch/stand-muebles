@@ -93,7 +93,7 @@ module.exports = {
   // funciona igual pero sin análisis de fotos.
   AI_PROVIDER: process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : 'none'),
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
   // Pausa entre llamadas (ms) para respetar el límite del free tier.
   AI_DELAY_MS: parseInt(process.env.AI_DELAY_MS || '4500', 10),
 };

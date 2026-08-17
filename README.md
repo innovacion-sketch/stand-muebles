@@ -88,7 +88,7 @@ fallas o elementos faltantes por sección.
    con hallazgos y faltantes. Las sucursales con alerta se marcan con **◆ IA: revisar**.
    Puedes forzar un nuevo análisis con el botón **Reanalizar IA** dentro de cada reporte.
 
-Variables relacionadas (opcionales): `GEMINI_MODEL` (por defecto `gemini-2.0-flash`),
+Variables relacionadas (opcionales): `GEMINI_MODEL` (por defecto `gemini-3.6-flash`),
 `AI_DELAY_MS` (pausa entre llamadas, por defecto 4500 ms para respetar el free tier).
 Los criterios que revisa la IA en cada sección se editan en `ai.js` (objeto `CHECKLIST`).
 Sin `GEMINI_API_KEY`, la app funciona igual pero sin análisis.
