@@ -49,7 +49,10 @@ function recentWeeks(n = 12) {
 function normalizaNombre(s) {
   return String(s || '')
     .normalize('NFD').replace(/\p{Diacritic}/gu, '')
-    .toLowerCase().replace(/\s+/g, ' ').trim();
+    .toLowerCase().replace(/\s+/g, ' ').trim()
+    // El sistema de asistencias guarda las sucursales como "Liverpool <nombre>"
+    // (son stands dentro de Liverpool). Ignoramos ese prefijo para que casen.
+    .replace(/^liverpool\s+/, '');
 }
 
 module.exports = { isoWeek, weekKey, weekRange, recentWeeks, normalizaNombre };
