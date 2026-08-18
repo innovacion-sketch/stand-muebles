@@ -311,6 +311,17 @@ app.get('/api/estado-sucursal', (req, res) => {
 // ============================ ESTÁTICOS ============================
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Manejador de errores: SIEMPRE responde JSON (evita que multer u otros
+// errores devuelvan una página HTML que rompe al cliente).
+app.use((err, req, res, next) => {
+  console.error('Error no controlado:', err && err.message);
+  if (res.headersSent) return next(err);
+  let mensaje = 'No se pudo procesar la solicitud. Intenta de nuevo.';
+  if (err && err.code === 'LIMIT_FILE_SIZE') mensaje = 'Una foto pesa demasiado. Intenta de nuevo (se comprimen solas al subir).';
+  else if (err && err.code === 'LIMIT_FILE_COUNT') mensaje = 'Demasiadas fotos en un solo envío.';
+  res.status((err && err.status) || 400).json({ error: 'error_procesar', message: mensaje });
+});
+
 app.listen(PORT, () => {
   console.log(`Stand Muebles corriendo en http://localhost:${PORT}`);
   console.log(`Datos en: ${DATA_DIR}`);

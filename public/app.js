@@ -80,16 +80,45 @@ function buildSecciones() {
   });
 
   cont.querySelectorAll('input[type=file]').forEach((input) => {
-    input.addEventListener('change', (e) => {
+    input.addEventListener('change', async (e) => {
       const key = input.dataset.key;
-      for (const file of e.target.files) {
-        if (!file.type.startsWith('image/')) continue;
-        state.fotos[key].push({ file, url: URL.createObjectURL(file) });
-      }
+      const files = Array.from(e.target.files);
       input.value = '';
-      renderPreviews(key);
+      const drop = document.querySelector(`.dropzone[data-drop="${key}"]`);
+      if (drop) drop.classList.add('procesando');
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        const comprimida = await comprimirImagen(file);
+        state.fotos[key].push({ file: comprimida, url: URL.createObjectURL(comprimida) });
+        renderPreviews(key);
+      }
+      if (drop) drop.classList.remove('procesando');
     });
   });
+}
+
+// Reduce el tamaño de la foto en el navegador antes de subirla (celulares suben fotos de varios MB).
+async function comprimirImagen(file, maxLado = 1400, calidad = 0.65) {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    let { width, height } = bitmap;
+    if (width > maxLado || height > maxLado) {
+      const r = Math.min(maxLado / width, maxLado / height);
+      width = Math.round(width * r);
+      height = Math.round(height * r);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+    bitmap.close && bitmap.close();
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', calidad));
+    if (!blob) return file;
+    const nombre = (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg';
+    return new File([blob], nombre, { type: 'image/jpeg' });
+  } catch (err) {
+    console.warn('No se pudo comprimir, se sube original:', err);
+    return file; // si algo falla, sube la original
+  }
 }
 
 function estadoHTML(sec) {
@@ -182,8 +211,14 @@ async function enviar(e) {
 
   try {
     const res = await fetch('/api/reportes', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al enviar');
+    const texto = await res.text();
+    let data;
+    try { data = JSON.parse(texto); } catch (_) {
+      // El servidor respondió HTML (proxy/tamaño/tiempo), no JSON.
+      if (res.status === 413) throw new Error('Las fotos pesan demasiado. Intenta con menos fotos o repite el envío.');
+      throw new Error(`El servidor respondió de forma inesperada (código ${res.status}). Revisa tu conexión e intenta de nuevo.`);
+    }
+    if (!res.ok) throw new Error(data.message || data.error || 'Error al enviar');
     document.getElementById('formulario').classList.add('hidden');
     document.getElementById('exito').classList.remove('hidden');
     document.getElementById('exito-semana').textContent = data.semana;
