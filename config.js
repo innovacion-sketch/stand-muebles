@@ -96,4 +96,9 @@ module.exports = {
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
   // Pausa entre llamadas (ms) para respetar el límite del free tier.
   AI_DELAY_MS: parseInt(process.env.AI_DELAY_MS || '4500', 10),
+
+  // ---- Integración con el sistema de asistencias ----
+  // Clave compartida para el endpoint /api/estado-sucursal (debe coincidir con
+  // STAND_API_KEY en el sistema de asistencias). Si está vacía, el endpoint se desactiva.
+  INTEGRATION_KEY: process.env.INTEGRATION_KEY || '',
 };

@@ -17,7 +17,7 @@ function tieneIncidencia(reporte) {
   return Object.values(reporte.secciones || {}).some((s) => s && s.estado === 'issue');
 }
 const dbStore = require('./db');
-const { weekKey, weekRange, recentWeeks } = require('./utils');
+const { weekKey, weekRange, recentWeeks, normalizaNombre } = require('./utils');
 const { buildPDF } = require('./pdf');
 const ai = require('./ai');
 
@@ -283,6 +283,29 @@ app.post('/api/admin/reportes/:id/reanalizar', requireAdmin, async (req, res) =>
   await dbStore.save(data);
   ai.enqueue(r.id);
   res.json({ ok: true });
+});
+
+// ============================ INTEGRACIÓN (asistencias) ============================
+// Consulta si una sucursal ya completó su reporte de la semana.
+// La usa el sistema de asistencias para permitir/bloquear la salida a comer.
+// Protegida con la cabecera X-Integration-Key (define INTEGRATION_KEY).
+app.get('/api/estado-sucursal', (req, res) => {
+  if (!config.INTEGRATION_KEY) {
+    return res.status(503).json({ error: 'integracion_no_configurada' });
+  }
+  if (req.get('X-Integration-Key') !== config.INTEGRATION_KEY) {
+    return res.status(401).json({ error: 'no_autorizado' });
+  }
+  const nombre = (req.query.sucursal || '').toString();
+  const norm = normalizaNombre(nombre);
+  if (!norm) return res.status(400).json({ error: 'falta_sucursal' });
+
+  const existe = SUCURSALES.some((s) => normalizaNombre(s) === norm);
+  const semana = (req.query.semana || weekKey(new Date())).toString();
+  const data = dbStore.load();
+  const completo = data.reportes.some((r) => normalizaNombre(r.sucursal) === norm && r.semana === semana);
+
+  res.json({ sucursal: nombre, existe, semana, completo });
 });
 
 // ============================ ESTÁTICOS ============================

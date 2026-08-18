@@ -45,4 +45,11 @@ function recentWeeks(n = 12) {
   return [...new Set(weeks)];
 }
 
-module.exports = { isoWeek, weekKey, weekRange, recentWeeks };
+// Normaliza un nombre de sucursal para comparar (sin acentos, minúsculas, espacios colapsados).
+function normalizaNombre(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+module.exports = { isoWeek, weekKey, weekRange, recentWeeks, normalizaNombre };
