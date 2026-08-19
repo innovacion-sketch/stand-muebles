@@ -92,8 +92,12 @@ module.exports = {
   // ---- Análisis con IA (Gemini free tier) ----
   // Se activa automáticamente si defines GEMINI_API_KEY. Sin clave, la app
   // funciona igual pero sin análisis de fotos.
-  AI_PROVIDER: process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? 'gemini' : 'none'),
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  // Puedes poner VARIAS claves separadas por coma (de distintas cuentas):
+  //   GEMINI_API_KEY=clave1,clave2,clave3
+  // La app rota a la siguiente automáticamente cuando una se agota o falla.
+  AI_PROVIDER: process.env.AI_PROVIDER || ((process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS) ? 'gemini' : 'none'),
+  GEMINI_API_KEYS: (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '')
+    .split(/[,\s]+/).map((k) => k.trim()).filter(Boolean),
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
   // Pausa entre llamadas (ms) para respetar el límite del free tier.
   AI_DELAY_MS: parseInt(process.env.AI_DELAY_MS || '4500', 10),

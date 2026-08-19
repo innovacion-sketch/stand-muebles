@@ -6,7 +6,10 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { DATA_DIR, AI_PROVIDER, GEMINI_API_KEY, GEMINI_MODEL, AI_DELAY_MS, SECCIONES } = config;
+const { DATA_DIR, AI_PROVIDER, GEMINI_API_KEYS, GEMINI_MODEL, AI_DELAY_MS, SECCIONES } = config;
+
+// Rotación de claves: se avanza a la siguiente cuando una se agota/falla.
+let keyIndex = 0;
 const dbStore = require('./db');
 
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
@@ -32,7 +35,13 @@ const CHECKLIST = {
   desperfectos:   'Fotos de daños o desperfectos reportados. Describe el daño visible y qué tan grave es.',
 };
 
-function isEnabled() { return AI_PROVIDER === 'gemini' && !!GEMINI_API_KEY; }
+function isEnabled() { return AI_PROVIDER === 'gemini' && GEMINI_API_KEYS.length > 0; }
+
+// ¿El error indica que la clave se agotó o es inválida? (para rotar a la siguiente)
+function esErrorDeClave(status, texto) {
+  if (status === 429) return true; // límite de peticiones / cuota
+  return /RESOURCE_EXHAUSTED|quota|exhausted|rate limit|API key not valid|invalid.?api.?key|permission|expired/i.test(texto || '');
+}
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 function mimeDe(f) {
@@ -87,24 +96,43 @@ async function geminiSeccion(fotos, sec) {
   }
   if (parts.length === 1) return null; // sin imágenes válidas
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     contents: [{ parts }],
     generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
   };
-  const res = await fetch(url, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  });
-  if (!res.ok) {
+
+  let ultimoError;
+  // Intenta con cada clave: si una se agota/falla, rota a la siguiente.
+  for (let intento = 0; intento < GEMINI_API_KEYS.length; intento++) {
+    const clave = GEMINI_API_KEYS[keyIndex];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${clave}`;
+    const res = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const text = (json.candidates && json.candidates[0] && json.candidates[0].content
+        && json.candidates[0].content.parts || []).map((x) => x.text || '').join('');
+      let parsed;
+      try { parsed = JSON.parse(text); } catch (e) { parsed = extraeJson(text); }
+      return normaliza(parsed);
+    }
+
     const t = await res.text();
-    throw new Error(`Gemini ${res.status}: ${t.slice(0, 240)}`);
+    ultimoError = new Error(`Gemini ${res.status}: ${t.slice(0, 200)}`);
+
+    if (GEMINI_API_KEYS.length > 1 && esErrorDeClave(res.status, t)) {
+      // Clave agotada o inválida: pasa a la siguiente cuenta y reintenta.
+      const anterior = keyIndex + 1;
+      keyIndex = (keyIndex + 1) % GEMINI_API_KEYS.length;
+      console.warn(`[IA] Clave #${anterior} agotada/no válida (${res.status}). Rotando a la clave #${keyIndex + 1}...`);
+      continue;
+    }
+    // Error no relacionado con la clave: no tiene sentido rotar.
+    throw ultimoError;
   }
-  const json = await res.json();
-  const text = (json.candidates && json.candidates[0] && json.candidates[0].content
-    && json.candidates[0].content.parts || []).map((x) => x.text || '').join('');
-  let parsed;
-  try { parsed = JSON.parse(text); } catch (e) { parsed = extraeJson(text); }
-  return normaliza(parsed);
+  throw ultimoError || new Error('Todas las claves de Gemini están agotadas.');
 }
 
 // Analiza todas las secciones con fotos de un reporte y guarda resultados.
@@ -181,7 +209,7 @@ async function procesar() {
 // Al arrancar, re-encola reportes que quedaron pendientes.
 function startupPending() {
   if (!isEnabled()) { console.log('[IA] Deshabilitada (sin GEMINI_API_KEY).'); return; }
-  console.log(`[IA] Activa con modelo ${GEMINI_MODEL}.`);
+  console.log(`[IA] Activa con modelo ${GEMINI_MODEL}. Claves configuradas: ${GEMINI_API_KEYS.length}${GEMINI_API_KEYS.length > 1 ? ' (rotación activada)' : ''}.`);
   const data = dbStore.load();
   for (const r of data.reportes) {
     if (r.iaEstado === 'pendiente') enqueue(r.id);
