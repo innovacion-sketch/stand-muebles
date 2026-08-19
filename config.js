@@ -71,6 +71,22 @@ const SECCIONES = [
   { key: 'desperfectos',   grupo: 'Incidencias',  label: 'Desperfectos / Daños',               estado: false, fotos: true, minFotos: 0, opcional: true, hint: 'Fotos de cualquier daño o desperfecto' },
 ];
 
+// Reúne todas las claves de Gemini disponibles:
+//  - GEMINI_API_KEY (una, o varias separadas por coma)
+//  - GEMINI_API_KEYS (varias separadas por coma)
+//  - GEMINI_API_KEY_1, GEMINI_API_KEY_2, ... (una por variable, hasta 30)
+function reunirClavesGemini() {
+  const claves = [];
+  const base = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+  claves.push(...base.split(/[,\s]+/));
+  for (let i = 1; i <= 30; i++) {
+    const v = process.env['GEMINI_API_KEY_' + i];
+    if (v) claves.push(...v.split(/[,\s]+/));
+  }
+  return [...new Set(claves.map((k) => k.trim()).filter(Boolean))];
+}
+const GEMINI_KEYS = reunirClavesGemini();
+
 module.exports = {
   REGIONES,
   SUCURSALES,
@@ -92,12 +108,12 @@ module.exports = {
   // ---- Análisis con IA (Gemini free tier) ----
   // Se activa automáticamente si defines GEMINI_API_KEY. Sin clave, la app
   // funciona igual pero sin análisis de fotos.
-  // Puedes poner VARIAS claves separadas por coma (de distintas cuentas):
-  //   GEMINI_API_KEY=clave1,clave2,clave3
+  // Varias cuentas: usa una variable por clave (recomendado en EasyPanel):
+  //   GEMINI_API_KEY_1=clave1   GEMINI_API_KEY_2=clave2   ...
+  // (También funciona GEMINI_API_KEY con varias separadas por coma.)
   // La app rota a la siguiente automáticamente cuando una se agota o falla.
-  AI_PROVIDER: process.env.AI_PROVIDER || ((process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS) ? 'gemini' : 'none'),
-  GEMINI_API_KEYS: (process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '')
-    .split(/[,\s]+/).map((k) => k.trim()).filter(Boolean),
+  AI_PROVIDER: process.env.AI_PROVIDER || (GEMINI_KEYS.length ? 'gemini' : 'none'),
+  GEMINI_API_KEYS: GEMINI_KEYS,
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
   // Pausa entre llamadas (ms) para respetar el límite del free tier.
   AI_DELAY_MS: parseInt(process.env.AI_DELAY_MS || '4500', 10),
