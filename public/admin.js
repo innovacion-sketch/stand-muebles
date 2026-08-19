@@ -254,6 +254,18 @@ async function verDetalle(id) {
       ${renderIA(d.ia)}`;
     body.appendChild(div);
   }
+  if (r.avances && (r.avances.estado || r.avances.comentarios)) {
+    const av = document.createElement('div');
+    av.className = 'det-sec';
+    const etq = { si: 'Sí se atendieron', parcial: 'Atendidos parcialmente', no: 'No se atendieron' }[r.avances.estado] || '—';
+    const badge = r.avances.estado === 'si' ? '<span class="badge si">Sí</span>'
+      : r.avances.estado === 'no' ? '<span class="badge no">No</span>'
+      : r.avances.estado === 'parcial' ? '<span class="badge gris">Parcial</span>' : '';
+    av.innerHTML = `<div class="head"><h3>Avances vs. semana pasada</h3>${badge}</div>
+      <div class="det-com"><strong>${etq}.</strong>${r.avances.comentarios ? ' ' + escapeHtml(r.avances.comentarios) : ''}</div>`;
+    body.appendChild(av);
+  }
+
   const sug = document.createElement('div');
   sug.className = 'det-sec';
   sug.innerHTML = `<div class="head"><h3>Comentarios y sugerencias generales</h3></div>

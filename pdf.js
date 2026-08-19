@@ -124,6 +124,21 @@ function buildPDF(reporte, stream) {
     y += 12;
   }
 
+  // -------- Avances vs. semana pasada --------
+  if (reporte.avances && (reporte.avances.estado || reporte.avances.comentarios)) {
+    if (y > doc.page.height - 120) { doc.addPage(); y = 50; }
+    const etq = { si: 'Sí se atendieron', parcial: 'Atendidos parcialmente', no: 'No se atendieron' }[reporte.avances.estado] || '—';
+    doc.font('Helvetica-Bold').fontSize(13).fillColor(COLORS.accent).text('Avances vs. semana pasada', 40, y);
+    y += 18;
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORS.dark).text(etq + '.', 40, y);
+    y = doc.y + 4;
+    if (reporte.avances.comentarios) {
+      doc.font('Helvetica').fontSize(10).fillColor('#333333').text(reporte.avances.comentarios, 40, y, { width: pageWidth });
+      y = doc.y;
+    }
+    y += 14;
+  }
+
   // -------- Sugerencias generales --------
   if (y > doc.page.height - 120) { doc.addPage(); y = 50; }
   doc.font('Helvetica-Bold').fontSize(13).fillColor(COLORS.accent).text('Comentarios y sugerencias generales', 40, y);
