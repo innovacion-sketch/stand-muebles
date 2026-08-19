@@ -51,18 +51,19 @@ function mimeDe(f) {
   return 'image/jpeg';
 }
 
-function promptDe(sec, check) {
+// Instrucción para analizar VARIAS secciones en una sola llamada (ahorra cuota).
+function promptLote() {
   return `Eres un inspector de mantenimiento de stands de la marca Sidhe (plantillas personalizadas y escaneo de pisada).
-Analiza la(s) foto(s) de la sección "${sec.label}".
-Qué revisar: ${check}
-Responde SOLO con un objeto JSON válido (en español, sin texto adicional, sin markdown) con esta forma exacta:
-{"estado":"ok|atencion|falla","hallazgos":["..."],"faltantes":["..."],"resumen":"...","confianza":0.0}
-Reglas:
-- "estado": "ok" si todo se ve bien; "atencion" si hay algo menor, dudoso o mala calidad de foto; "falla" si hay daño claro o no funciona.
-- "hallazgos": lista breve de problemas o daños visibles (vacía si no hay).
-- "faltantes": elementos que deberían estar y no aparecen (vacía si no aplica).
-- "resumen": una frase corta del estado general.
-- "confianza": número de 0 a 1 según qué tan seguro estás dada la calidad/claridad de la foto.`;
+A continuación recibes varias secciones del stand. Cada una viene marcada con "[SECCION <clave>] <nombre>", su lista de "Qué revisar", y luego sus fotos.
+Analiza CADA sección y responde SOLO con un objeto JSON válido (en español, sin markdown, sin texto extra) con UNA entrada por cada <clave>, exactamente así:
+{"<clave>": {"estado":"ok|atencion|falla","hallazgos":["..."],"faltantes":["..."],"resumen":"...","confianza":0.0}, "<otra_clave>": { ... }}
+Reglas por sección:
+- "estado": "ok" si se ve bien; "atencion" si hay algo menor, dudoso o mala calidad de foto; "falla" si hay daño claro o no funciona.
+- "hallazgos": problemas o daños visibles (vacío si no hay).
+- "faltantes": elementos que deberían estar y no aparecen (vacío si no aplica).
+- "resumen": una frase corta del estado.
+- "confianza": número de 0 a 1 según la claridad de la foto.
+Usa EXACTAMENTE las claves indicadas entre corchetes como llaves del JSON. Incluye TODAS las secciones que recibas.`;
 }
 
 function extraeJson(txt) {
@@ -85,24 +86,14 @@ function normaliza(p) {
   return out;
 }
 
-// Llama a Gemini con las fotos de una sección y devuelve el veredicto.
-async function geminiSeccion(fotos, sec) {
-  const check = CHECKLIST[sec.key] || `Elemento del stand: ${sec.label}. Revisa su estado general, daños o cosas faltantes.`;
-  const parts = [{ text: promptDe(sec, check) }];
-  for (const f of fotos.slice(0, 8)) { // máximo 8 fotos por llamada
-    const p = path.join(UPLOAD_DIR, f);
-    if (!fs.existsSync(p)) continue;
-    parts.push({ inline_data: { mime_type: mimeDe(f), data: fs.readFileSync(p).toString('base64') } });
-  }
-  if (parts.length === 1) return null; // sin imágenes válidas
-
+// Llama a Gemini con las partes dadas (texto + imágenes) y devuelve el texto de la respuesta.
+// Rota entre las claves cuando una se agota/falla (con pausa para no quemarlas de golpe).
+async function geminiGenerate(parts) {
   const body = {
     contents: [{ parts }],
     generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
   };
-
   let ultimoError;
-  // Intenta con cada clave: si una se agota/falla, rota a la siguiente.
   for (let intento = 0; intento < GEMINI_API_KEYS.length; intento++) {
     const clave = GEMINI_API_KEYS[keyIndex];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${clave}`;
@@ -112,30 +103,51 @@ async function geminiSeccion(fotos, sec) {
 
     if (res.ok) {
       const json = await res.json();
-      const text = (json.candidates && json.candidates[0] && json.candidates[0].content
+      return (json.candidates && json.candidates[0] && json.candidates[0].content
         && json.candidates[0].content.parts || []).map((x) => x.text || '').join('');
-      let parsed;
-      try { parsed = JSON.parse(text); } catch (e) { parsed = extraeJson(text); }
-      return normaliza(parsed);
     }
 
     const t = await res.text();
     ultimoError = new Error(`Gemini ${res.status}: ${t.slice(0, 200)}`);
 
     if (GEMINI_API_KEYS.length > 1 && esErrorDeClave(res.status, t)) {
-      // Clave agotada o inválida: pasa a la siguiente cuenta y reintenta.
       const anterior = keyIndex + 1;
       keyIndex = (keyIndex + 1) % GEMINI_API_KEYS.length;
       console.warn(`[IA] Clave #${anterior} agotada/no válida (${res.status}). Rotando a la clave #${keyIndex + 1}...`);
+      await sleep(700); // pausa entre claves para no agotarlas en ráfaga
       continue;
     }
-    // Error no relacionado con la clave: no tiene sentido rotar.
-    throw ultimoError;
+    throw ultimoError; // error no relacionado con la clave
   }
   throw ultimoError || new Error('Todas las claves de Gemini están agotadas.');
 }
 
-// Analiza todas las secciones con fotos de un reporte y guarda resultados.
+// Analiza un grupo de secciones en UNA sola llamada. Devuelve { clave: veredictoCrudo }.
+async function geminiLote(rep, secciones) {
+  const parts = [{ text: promptLote() }];
+  let hayImagenes = false;
+  for (const sec of secciones) {
+    const check = CHECKLIST[sec.key] || `Elemento del stand: ${sec.label}. Revisa su estado general, daños o cosas faltantes.`;
+    parts.push({ text: `\n[SECCION ${sec.key}] ${sec.label}\nQué revisar: ${check}\nFotos:` });
+    for (const f of (rep.secciones[sec.key].fotos || []).slice(0, 8)) {
+      const p = path.join(UPLOAD_DIR, f);
+      if (!fs.existsSync(p)) continue;
+      parts.push({ inline_data: { mime_type: mimeDe(f), data: fs.readFileSync(p).toString('base64') } });
+      hayImagenes = true;
+    }
+  }
+  if (!hayImagenes) return {};
+
+  const text = await geminiGenerate(parts);
+  let parsed;
+  try { parsed = JSON.parse(text); } catch (e) { parsed = extraeJson(text); }
+  return (parsed && typeof parsed === 'object') ? parsed : {};
+}
+
+// Máximo de imágenes por llamada (para no exceder el tamaño del request).
+const MAX_IMG_LOTE = 20;
+
+// Analiza un reporte completo en pocas llamadas (agrupa secciones por lote).
 async function analizarReporte(reportId) {
   if (!isEnabled()) return;
   let data = dbStore.load();
@@ -148,24 +160,37 @@ async function analizarReporte(reportId) {
     return d && d.fotos && d.fotos.length;
   });
 
-  for (const sec of seccionesConFotos) {
-    const d = rep.secciones[sec.key];
-    let veredicto;
+  // Agrupar secciones en lotes hasta MAX_IMG_LOTE imágenes por llamada.
+  const lotes = [];
+  let grupo = [], imgs = 0;
+  for (const s of seccionesConFotos) {
+    const n = Math.min(rep.secciones[s.key].fotos.length, 8);
+    if (grupo.length && imgs + n > MAX_IMG_LOTE) { lotes.push(grupo); grupo = []; imgs = 0; }
+    grupo.push(s); imgs += n;
+  }
+  if (grupo.length) lotes.push(grupo);
+
+  for (let li = 0; li < lotes.length; li++) {
+    const secs = lotes[li];
+    let veredictos = {};
     try {
-      veredicto = await geminiSeccion(d.fotos, sec);
+      veredictos = await geminiLote(rep, secs);
     } catch (e) {
-      console.error(`[IA] Error en ${rep.sucursal}/${sec.key}:`, e.message);
-      veredicto = { estado: 'error', error: e.message, analizadoEn: new Date().toISOString() };
+      console.error(`[IA] Error analizando ${rep.sucursal} (lote ${li + 1}/${lotes.length}):`, e.message);
+      for (const s of secs) veredictos[s.key] = { estado: 'error', error: e.message, analizadoEn: new Date().toISOString() };
     }
-    if (veredicto) {
-      // recargar en fresco para no pisar envíos concurrentes
-      data = dbStore.load();
-      rep = data.reportes.find((r) => r.id === reportId);
-      if (!rep) return;
-      rep.secciones[sec.key].ia = veredicto;
-      await dbStore.save(data);
+    // recargar en fresco para no pisar envíos concurrentes
+    data = dbStore.load();
+    rep = data.reportes.find((r) => r.id === reportId);
+    if (!rep) return;
+    for (const s of secs) {
+      const raw = veredictos[s.key];
+      if (raw && raw.estado === 'error') rep.secciones[s.key].ia = raw;
+      else if (raw) rep.secciones[s.key].ia = normaliza(raw);
+      // si la IA no devolvió esta sección, se queda sin veredicto (no la marcamos como falsa alerta).
     }
-    await sleep(AI_DELAY_MS); // respeta el límite del free tier
+    await dbStore.save(data);
+    if (li < lotes.length - 1) await sleep(AI_DELAY_MS);
   }
 
   data = dbStore.load();
@@ -175,7 +200,7 @@ async function analizarReporte(reportId) {
     rep.iaEstado = conError ? 'error' : 'listo';
     rep.iaResumen = resumen(rep);
     await dbStore.save(data);
-    console.log(`[IA] Reporte ${rep.sucursal} listo. Alertas: ${rep.iaResumen.alertas}`);
+    console.log(`[IA] Reporte ${rep.sucursal} ${conError ? 'con errores (se reintentará)' : 'listo'}. Alertas: ${rep.iaResumen.alertas}. Llamadas: ${lotes.length}.`);
   }
 }
 
@@ -206,14 +231,33 @@ async function procesar() {
   procesando = false;
 }
 
-// Al arrancar, re-encola reportes que quedaron pendientes.
+// Reintento automático: cada cierto tiempo re-encola los reportes que quedaron
+// en error (p. ej. por cuota agotada), para que se completen solos al liberarse.
+let retryTimer = null;
+function iniciarReintentos() {
+  if (!isEnabled() || retryTimer) return;
+  const cadaMin = parseInt(process.env.AI_RETRY_MIN || '30', 10);
+  if (!(cadaMin > 0)) return;
+  retryTimer = setInterval(() => {
+    const data = dbStore.load();
+    const errs = data.reportes.filter((r) => r.iaEstado === 'error');
+    if (errs.length) {
+      console.log(`[IA] Reintentando ${errs.length} reporte(s) en error...`);
+      for (const r of errs) enqueue(r.id);
+    }
+  }, cadaMin * 60 * 1000);
+  if (retryTimer.unref) retryTimer.unref();
+}
+
+// Al arrancar, re-encola reportes pendientes o en error, y activa el reintento.
 function startupPending() {
   if (!isEnabled()) { console.log('[IA] Deshabilitada (sin GEMINI_API_KEY).'); return; }
   console.log(`[IA] Activa con modelo ${GEMINI_MODEL}. Claves configuradas: ${GEMINI_API_KEYS.length}${GEMINI_API_KEYS.length > 1 ? ' (rotación activada)' : ''}.`);
   const data = dbStore.load();
   for (const r of data.reportes) {
-    if (r.iaEstado === 'pendiente') enqueue(r.id);
+    if (r.iaEstado === 'pendiente' || r.iaEstado === 'error') enqueue(r.id);
   }
+  iniciarReintentos();
 }
 
 module.exports = { isEnabled, enqueue, analizarReporte, startupPending, CHECKLIST };
