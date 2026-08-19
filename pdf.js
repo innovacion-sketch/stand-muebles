@@ -135,9 +135,14 @@ function buildPDF(reporte, stream) {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
+    // Escribir en el margen inferior sin que PDFKit crea que el contenido
+    // se desbordó (eso agregaba una página en blanco por cada pie).
+    const bottomOrig = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
     doc.font('Helvetica').fontSize(8).fillColor(COLORS.gray)
       .text(`${reporte.sucursal} — ${reporte.semana}   |   Página ${i - range.start + 1} de ${range.count}`,
-        40, doc.page.height - 28, { width: pageWidth, align: 'center' });
+        40, doc.page.height - 28, { width: pageWidth, align: 'center', lineBreak: false });
+    doc.page.margins.bottom = bottomOrig;
   }
 
   doc.end();
