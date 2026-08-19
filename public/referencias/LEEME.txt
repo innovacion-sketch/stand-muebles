@@ -1,0 +1,27 @@
+IMÁGENES DE REFERENCIA (cómo debe verse cada sección)
+=====================================================
+
+Pon aquí una imagen por sección, nombrada EXACTAMENTE con la clave de la sección
+más ".jpg". Si el archivo existe, aparece en el formulario como "Foto de referencia";
+si no existe, no se muestra nada (no pasa nada).
+
+Formato recomendado: JPG, máx ~1200px de ancho, horizontal o vertical.
+
+Nombres de archivo por sección:
+  impresora.jpg        -> Impresora 3D
+  cajones.jpg          -> Cajones
+  barandal_lado1.jpg   -> Barandal Lado 1
+  barandal_lado2.jpg   -> Barandal Lado 2
+  puerta.jpg           -> Puerta
+  silla.jpg            -> Silla del cliente
+  modem.jpg            -> Módem
+  pantallas.jpg        -> Pantallas
+  tablets.jpg          -> Tablets
+  baropodometro.jpg    -> Baropodómetro
+  escaner.jpg          -> Escáner 3D
+  computadora.jpg      -> Computadora
+  zapatos.jpg          -> Zapatos / sandalias en exhibición
+  extras.jpg           -> Otras cosas del stand
+  desperfectos.jpg     -> Desperfectos / Daños
+
+No necesitas poner todas: solo las secciones donde quieras mostrar un ejemplo.

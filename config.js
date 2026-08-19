@@ -62,6 +62,7 @@ const SECCIONES = [
   { key: 'pantallas',      grupo: 'Equipo',       label: 'Pantallas (si aplica)',              estado: true, estadoLabel: '¿Las pantallas funcionan correctamente?',  fotos: true, minFotos: 0, opcional: true },
   { key: 'tablets',        grupo: 'Equipo',       label: 'Tablets (si tienen)',                estado: true, estadoLabel: '¿Las tablets funcionan correctamente?',    fotos: true, minFotos: 0, opcional: true, hint: 'Una foto de cada tablet con la que cuenten' },
   { key: 'baropodometro',  grupo: 'Equipo',       label: 'Baropodómetro',                      estado: true, estadoLabel: '¿El baropodómetro funciona correctamente?', fotos: true, minFotos: 1 },
+  { key: 'escaner',        grupo: 'Equipo',       label: 'Escáner 3D',                         estado: true, estadoLabel: '¿El escáner funciona correctamente?',       fotos: true, minFotos: 2, hint: 'Foto del escáner y del tapete de calibración' },
   { key: 'computadora',    grupo: 'Equipo',       label: 'Computadora',                        estado: true, estadoLabel: '¿La computadora funciona correctamente?',  fotos: true, minFotos: 1 },
 
   { key: 'zapatos',        grupo: 'Exhibición',   label: 'Zapatos o sandalias en exhibición',  estado: false, fotos: true, minFotos: 0, opcional: true, hint: 'Fotos de los zapatos o sandalias expuestas' },

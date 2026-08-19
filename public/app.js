@@ -57,6 +57,7 @@ function buildSecciones() {
         <h2><span class="seccion-num">${String(i + 1).padStart(2, '0')}</span> · ${sec.label}</h2>
         ${sec.opcional ? '<span class="chip-opt">Opcional</span>' : ''}
       </div>
+      ${refHTML(sec)}
       ${sec.estado ? estadoHTML(sec) : ''}
       ${sec.fotos ? fotosHTML(sec) : ''}
       <div class="q-label">Comentarios</div>
@@ -119,6 +120,18 @@ async function comprimirImagen(file, maxLado = 1400, calidad = 0.65) {
     console.warn('No se pudo comprimir, se sube original:', err);
     return file; // si algo falla, sube la original
   }
+}
+
+// Muestra una foto de referencia ("así debe verse") si existe el archivo
+// public/referencias/<clave>.jpg. Si no existe, se oculta automáticamente.
+function refHTML(sec) {
+  return `
+    <div class="ref-ejemplo" style="display:none">
+      <div class="q-label">📌 Foto de referencia — así debe verse</div>
+      <img src="/referencias/${sec.key}.jpg" alt="Referencia de ${sec.label}"
+        onload="this.closest('.ref-ejemplo').style.display=''"
+        onerror="this.closest('.ref-ejemplo').remove()" />
+    </div>`;
 }
 
 function estadoHTML(sec) {
