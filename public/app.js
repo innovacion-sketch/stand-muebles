@@ -1,5 +1,9 @@
 let CONFIG = null;
-const state = { fotos: {}, estados: {} };
+const state = { fotos: {}, estados: {}, avances: { estado: null } };
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 const CAM_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
 
@@ -57,6 +61,7 @@ function buildSecciones() {
         <h2><span class="seccion-num">${String(i + 1).padStart(2, '0')}</span> · ${sec.label}</h2>
         ${sec.opcional ? '<span class="chip-opt">Opcional</span>' : ''}
       </div>
+      ${refHTML(sec)}
       ${sec.estado ? estadoHTML(sec) : ''}
       ${sec.fotos ? fotosHTML(sec) : ''}
       <div class="q-label">Comentarios</div>
@@ -121,6 +126,18 @@ async function comprimirImagen(file, maxLado = 1400, calidad = 0.65) {
   }
 }
 
+// Muestra una foto de referencia ("así debe verse") si existe el archivo
+// public/referencias/<clave>.jpg. Si no existe, se oculta automáticamente.
+function refHTML(sec) {
+  const archivo = CONFIG.referencias && CONFIG.referencias[sec.key];
+  if (!archivo) return '';
+  return `
+    <div class="ref-ejemplo">
+      <div class="q-label">📌 Foto de referencia — así debe verse</div>
+      <img src="/referencias/${archivo}" alt="Referencia de ${sec.label}" loading="lazy" />
+    </div>`;
+}
+
 function estadoHTML(sec) {
   return `
     <div class="q-label">${sec.estadoLabel}</div>
@@ -175,8 +192,47 @@ function empezar() {
   document.getElementById('avatar').textContent = suc.trim().charAt(0).toUpperCase();
   document.getElementById('paso-sucursal').classList.add('hidden');
   document.getElementById('formulario').classList.remove('hidden');
+  state.avances = { estado: null };
+  cargarAvances(suc);
   actualizarProgreso();
   window.scrollTo(0, 0);
+}
+
+// Trae los pendientes de la semana pasada y arma la sección de avances.
+async function cargarAvances(suc) {
+  const box = document.getElementById('avances-box');
+  box.innerHTML = '';
+  let data;
+  try {
+    const res = await fetch('/api/pendientes-semana-pasada?sucursal=' + encodeURIComponent(suc));
+    data = await res.json();
+  } catch (e) { return; }
+  if (!data || !data.hayReporte) return; // primera semana: no hay con qué comparar
+
+  let inner = `<div class="card avances"><div class="eyebrow">Seguimiento</div>
+    <h2 style="font-size:18px">Avances de la semana pasada</h2>`;
+  if (data.pendientes.length) {
+    inner += `<p class="muted small" style="margin:6px 0 10px">La semana pasada quedaron estos pendientes. ¿Ya se atendieron?</p>
+      <ul class="pend-list">${data.pendientes.map((p) =>
+        `<li><b>${escapeHtml(p.seccion)}</b>${p.comentario ? ' — ' + escapeHtml(p.comentario) : ''}</li>`).join('')}</ul>
+      <div class="q-label">¿Se atendieron estos pendientes?</div>
+      <div class="segmented seg3">
+        <button type="button" class="av-btn" data-val="si">✓ Sí</button>
+        <button type="button" class="av-btn" data-val="parcial">◑ Parcial</button>
+        <button type="button" class="av-btn" data-val="no">✕ No</button>
+      </div>`;
+  } else {
+    inner += `<p class="muted small" style="margin:6px 0 8px">La semana pasada no hubo pendientes marcados. 🎉</p>`;
+  }
+  inner += `<div class="q-label">Comentarios de avances</div>
+    <textarea id="avances-com" rows="2" placeholder="¿Qué se resolvió o qué sigue pendiente?"></textarea></div>`;
+  box.innerHTML = inner;
+
+  box.querySelectorAll('.av-btn').forEach((b) => b.addEventListener('click', () => {
+    state.avances.estado = b.dataset.val;
+    box.querySelectorAll('.av-btn').forEach((x) => x.classList.remove('sel'));
+    b.classList.add('sel');
+  }));
 }
 
 function volver() {
@@ -195,6 +251,9 @@ async function enviar(e) {
   fd.append('sucursal', suc);
   fd.append('responsable', document.getElementById('responsable').value.trim());
   fd.append('sugerencias', document.getElementById('sugerencias').value.trim());
+  if (state.avances.estado) fd.append('avances_estado', state.avances.estado);
+  const avCom = document.getElementById('avances-com');
+  if (avCom && avCom.value.trim()) fd.append('avances_comentarios', avCom.value.trim());
 
   for (const sec of CONFIG.secciones) {
     if (state.estados[sec.key]) fd.append(`estado_${sec.key}`, state.estados[sec.key]);

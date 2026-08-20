@@ -70,14 +70,50 @@ async function guardarImagen(file) {
 
 // Config para el formulario
 app.get('/api/config', (req, res) => {
+  // Qué imágenes de referencia existen (public/referencias/<clave>.<ext>).
+  const referencias = {};
+  try {
+    for (const f of fs.readdirSync(path.join(__dirname, 'public', 'referencias'))) {
+      const m = /^(.+)\.(jpe?g|png|webp)$/i.exec(f);
+      if (m) referencias[m[1]] = f;
+    }
+  } catch (e) { /* sin carpeta o vacía */ }
+
   res.json({
     sucursales: SUCURSALES,
     regiones: REGIONES,
+    referencias,
     secciones: SECCIONES.map((s) => ({
       key: s.key, grupo: s.grupo || '', label: s.label, estado: !!s.estado, estadoLabel: s.estadoLabel || '¿En buen estado?',
       fotos: !!s.fotos, minFotos: s.minFotos || 0, opcional: !!s.opcional, hint: s.hint || '',
     })),
   });
+});
+
+// Pendientes de la semana pasada para una sucursal (para la sección de avances).
+app.get('/api/pendientes-semana-pasada', (req, res) => {
+  const norm = normalizaNombre((req.query.sucursal || '').toString());
+  if (!norm) return res.status(400).json({ error: 'falta_sucursal' });
+  const semanaPasada = weekKey(new Date(Date.now() - 7 * 24 * 3600 * 1000));
+  const data = dbStore.load();
+  const previos = data.reportes
+    .filter((r) => normalizaNombre(r.sucursal) === norm && r.semana === semanaPasada)
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  const r = previos[0];
+  if (!r) return res.json({ semana: semanaPasada, hayReporte: false, pendientes: [], sugerencias: '' });
+
+  const pendientes = [];
+  for (const sec of SECCIONES) {
+    const d = r.secciones[sec.key];
+    if (d && sec.estado && d.estado === 'issue') {
+      pendientes.push({ seccion: sec.label, comentario: d.comentarios || '' });
+    }
+  }
+  const desp = r.secciones && r.secciones.desperfectos;
+  if (desp && ((desp.fotos && desp.fotos.length) || desp.comentarios)) {
+    pendientes.push({ seccion: 'Desperfectos / Daños', comentario: desp.comentarios || '' });
+  }
+  res.json({ semana: semanaPasada, hayReporte: true, pendientes, sugerencias: r.sugerencias || '' });
 });
 
 // Enviar reporte
@@ -119,6 +155,10 @@ app.post('/api/reportes', upload.any(), async (req, res) => {
       createdAt: now.toISOString(),
       secciones,
       sugerencias,
+      avances: {
+        estado: (req.body.avances_estado || '').trim(),        // 'si' | 'parcial' | 'no' | ''
+        comentarios: (req.body.avances_comentarios || '').trim(),
+      },
       iaEstado: ai.isEnabled() ? 'pendiente' : 'off',
     };
 

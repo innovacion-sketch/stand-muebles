@@ -28,6 +28,7 @@ const CHECKLIST = {
   pantallas:      'Pantalla o monitor de exhibición. Revisa: encendida, sin grietas, mostrando contenido.',
   tablets:        'Tablet(s). Revisa: encendida, pantalla sin grietas, funcionando, sin daños.',
   baropodometro:  'Baropodómetro Sidhe (plataforma circular con anillo iluminado y tapete de calibración). Revisa: cristal/anillo sin grietas, tapete presente y limpio, que se vea encendido.',
+  escaner:        'Escáner 3D de pie (isun3D: tapete negro con silueta de pies y marcadores). Revisa: tapete completo y limpio, sin roturas, marcadores visibles, equipo conectado y en su lugar.',
   computadora:    'Computadora o monitor del stand. Revisa: encendida, mostrando el sitio de Sidhe, sin daños, cables ordenados.',
   zapatos:        'Zapatos o sandalias en exhibición. Revisa: acomodo ordenado, producto limpio y presente, exhibición completa.',
   extras:         'Otros elementos del stand. Describe su estado general y cualquier daño o falta evidente.',
