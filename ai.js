@@ -93,6 +93,7 @@ async function geminiGenerate(parts) {
     generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
   };
   let ultimoError;
+  let ultimaCuota = false; // ¿el último fallo fue por cuota/429? (no marcar "error" real)
   for (let intento = 0; intento < GEMINI_API_KEYS.length; intento++) {
     const clave = GEMINI_API_KEYS[keyIndex];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${clave}`;
@@ -108,6 +109,7 @@ async function geminiGenerate(parts) {
 
     const t = await res.text();
     ultimoError = new Error(`Gemini ${res.status}: ${t.slice(0, 200)}`);
+    ultimaCuota = (res.status === 429) || /RESOURCE_EXHAUSTED|quota|exhausted/i.test(t);
 
     if (GEMINI_API_KEYS.length > 1 && esErrorDeClave(res.status, t)) {
       const anterior = keyIndex + 1;
@@ -116,9 +118,12 @@ async function geminiGenerate(parts) {
       await sleep(700); // pausa entre claves para no agotarlas en ráfaga
       continue;
     }
-    throw ultimoError; // error no relacionado con la clave
+    ultimoError.esCuota = ultimaCuota;
+    throw ultimoError; // error no relacionado con la clave (o cuota con una sola clave)
   }
-  throw ultimoError || new Error('Todas las claves de Gemini están agotadas.');
+  const err = ultimoError || new Error('Todas las claves de Gemini están agotadas.');
+  err.esCuota = ultimaCuota; // todas las claves toparon la cuota
+  throw err;
 }
 
 // Analiza un grupo de secciones en UNA sola llamada. Devuelve { clave: veredictoCrudo }.
@@ -175,8 +180,9 @@ async function analizarReporte(reportId) {
     try {
       veredictos = await geminiLote(rep, secs);
     } catch (e) {
-      console.error(`[IA] Error analizando ${rep.sucursal} (lote ${li + 1}/${lotes.length}):`, e.message);
-      for (const s of secs) veredictos[s.key] = { estado: 'error', error: e.message, analizadoEn: new Date().toISOString() };
+      const cuota = !!e.esCuota;
+      console.error(`[IA] Error analizando ${rep.sucursal} (lote ${li + 1}/${lotes.length})${cuota ? ' [cuota agotada, se reintentará]' : ''}:`, e.message);
+      for (const s of secs) veredictos[s.key] = { estado: 'error', esCuota: cuota, error: e.message, analizadoEn: new Date().toISOString() };
     }
     // recargar en fresco para no pisar envíos concurrentes
     data = dbStore.load();
