@@ -46,6 +46,7 @@ const SUCURSALES = REGIONES.flatMap((r) => r.sucursales);
 //    fotos     -> true para permitir subir fotos
 //    minFotos  -> fotos mínimas sugeridas (solo informativo)
 //    opcional  -> true si la sección puede quedar vacía (ej. pantallas)
+//    requerida -> true si la foto es OBLIGATORIA para poder enviar (mín. minFotos, o 1)
 // ---------------------------------------------------------------------------
 const SECCIONES = [
   // key         grupo          label                                estado / etiqueta                                   fotos    min  opcional  hint
@@ -65,6 +66,7 @@ const SECCIONES = [
   { key: 'escaner',        grupo: 'Equipo',       label: 'Escáner 3D',                         estado: true, estadoLabel: '¿El escáner funciona correctamente?',       fotos: true, minFotos: 2, hint: 'Foto del escáner y del tapete de calibración' },
   { key: 'computadora',    grupo: 'Equipo',       label: 'Computadora',                        estado: true, estadoLabel: '¿La computadora funciona correctamente?',  fotos: true, minFotos: 1 },
 
+  { key: 'muestrario',     grupo: 'Exhibición',   label: 'Muestrario',                         estado: true, estadoLabel: '¿El muestrario está completo y en buen estado?', fotos: true, minFotos: 1, requerida: true, hint: 'Foto del muestrario de plantillas / producto en exhibición' },
   { key: 'zapatos',        grupo: 'Exhibición',   label: 'Zapatos o sandalias en exhibición',  estado: false, fotos: true, minFotos: 0, opcional: true, hint: 'Fotos de los zapatos o sandalias expuestas' },
   { key: 'extras',         grupo: 'Otros',        label: 'Otras cosas del stand',              estado: false, fotos: true, minFotos: 0, opcional: true, hint: 'Cualquier otro elemento con el que cuenten, aparte del stand' },
 

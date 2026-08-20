@@ -12,7 +12,14 @@ const COLORS = {
   light: '#e4e6ea',
   ok: '#2f5fd6',        // funcional = azul (coherente con el panel)
   bad: '#e0642f',       // no funcional = ámbar
+  ia: '#7a4fd0',        // análisis con IA = violeta (coherente con el panel)
 };
+
+// Etiqueta y color del veredicto de IA por sección.
+const IA_ETQ = { ok: 'Se ve bien', atencion: 'Requiere revisión', falla: 'Falla detectada' };
+function iaColor(estado) {
+  return estado === 'ok' ? COLORS.ok : estado === 'falla' ? COLORS.bad : '#c07a1e';
+}
 
 // Genera el PDF de un reporte y lo escribe en el stream (res o archivo).
 function buildPDF(reporte, stream) {
@@ -117,6 +124,36 @@ function buildPDF(reporte, stream) {
       doc.font('Helvetica').fontSize(10).fillColor('#333333');
       doc.text(data.comentarios, 40, y, { width: pageWidth });
       y = doc.y + 8;
+    }
+
+    // Análisis con IA (si existe y no fue error de cuota/servicio)
+    const ia = data.ia;
+    if (ia && ia.estado && ia.estado !== 'error') {
+      if (y > doc.page.height - 90) { doc.addPage(); y = 50; }
+      const etq = IA_ETQ[ia.estado] || ia.estado;
+      const conf = (typeof ia.confianza === 'number') ? `  ·  ${Math.round(ia.confianza * 100)}% confianza` : '';
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.ia)
+        .text(`Análisis IA: ${etq}${conf}`, 40, y);
+      y = doc.y + 3;
+      if (ia.resumen) {
+        doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text(ia.resumen, 40, y, { width: pageWidth });
+        y = doc.y + 2;
+      }
+      const lista = (titulo, arr) => {
+        if (!arr || !arr.length) return;
+        if (y > doc.page.height - 70) { doc.addPage(); y = 50; }
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#444444').text(`${titulo}:`, 40, y);
+        y = doc.y + 1;
+        doc.font('Helvetica').fontSize(9.5).fillColor('#444444');
+        for (const item of arr) {
+          if (y > doc.page.height - 55) { doc.addPage(); y = 50; }
+          doc.text(`•  ${item}`, 48, y, { width: pageWidth - 8 });
+          y = doc.y + 1;
+        }
+      };
+      lista('Hallazgos', ia.hallazgos);
+      lista('Faltantes', ia.faltantes);
+      y += 8;
     }
 
     y += 8;

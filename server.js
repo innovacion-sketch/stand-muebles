@@ -85,7 +85,7 @@ app.get('/api/config', (req, res) => {
     referencias,
     secciones: SECCIONES.map((s) => ({
       key: s.key, grupo: s.grupo || '', label: s.label, estado: !!s.estado, estadoLabel: s.estadoLabel || '¿En buen estado?',
-      fotos: !!s.fotos, minFotos: s.minFotos || 0, opcional: !!s.opcional, hint: s.hint || '',
+      fotos: !!s.fotos, minFotos: s.minFotos || 0, opcional: !!s.opcional, requerida: !!s.requerida, hint: s.hint || '',
     })),
   });
 });
@@ -132,6 +132,18 @@ app.post('/api/reportes', upload.any(), async (req, res) => {
       const m = /^foto_(.+)$/.exec(f.fieldname);
       if (!m) continue;
       (filesBySection[m[1]] = filesBySection[m[1]] || []).push(f);
+    }
+
+    // Validar secciones con foto obligatoria (requerida: true en config.js).
+    for (const sec of SECCIONES) {
+      if (!sec.requerida) continue;
+      const min = Math.max(1, sec.minFotos || 1);
+      if ((filesBySection[sec.key] || []).length < min) {
+        return res.status(400).json({
+          error: 'faltan_fotos',
+          message: `Falta subir la foto de "${sec.label}" (mínimo ${min}). Es obligatoria.`,
+        });
+      }
     }
 
     const secciones = {};

@@ -60,6 +60,7 @@ function buildSecciones() {
       <div class="seccion-header">
         <h2><span class="seccion-num">${String(i + 1).padStart(2, '0')}</span> · ${sec.label}</h2>
         ${sec.opcional ? '<span class="chip-opt">Opcional</span>' : ''}
+        ${sec.requerida ? '<span class="chip-req">Obligatoria</span>' : ''}
       </div>
       ${refHTML(sec)}
       ${sec.estado ? estadoHTML(sec) : ''}
@@ -246,6 +247,18 @@ async function enviar(e) {
   const btn = document.getElementById('btn-enviar');
   const prog = document.getElementById('progreso');
   const suc = document.getElementById('sucursal').value;
+
+  // Secciones con foto obligatoria (requerida: true en config.js).
+  for (const sec of CONFIG.secciones) {
+    if (!sec.requerida) continue;
+    const min = Math.max(1, sec.minFotos || 1);
+    if ((state.fotos[sec.key] || []).length < min) {
+      alert(`Falta subir la foto de "${sec.label}" (mínimo ${min}). Es obligatoria para enviar el reporte.`);
+      const card = document.querySelector(`.seccion[data-key="${sec.key}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
 
   const fd = new FormData();
   fd.append('sucursal', suc);
