@@ -184,9 +184,15 @@ async function analizarReporte(reportId) {
     if (!rep) return;
     for (const s of secs) {
       const raw = veredictos[s.key];
-      if (raw && raw.estado === 'error') rep.secciones[s.key].ia = raw;
-      else if (raw) rep.secciones[s.key].ia = normaliza(raw);
-      // si la IA no devolvió esta sección, se queda sin veredicto (no la marcamos como falsa alerta).
+      if (!raw) continue; // la IA no devolvió esta sección: dejar como está
+      if (raw.estado === 'error') {
+        // Un error temporal (cuota) NO debe borrar un veredicto bueno anterior;
+        // solo marca error si la sección aún no tenía veredicto. Así el número no baja.
+        const prev = rep.secciones[s.key].ia;
+        if (!prev || prev.estado === 'error') rep.secciones[s.key].ia = raw;
+      } else {
+        rep.secciones[s.key].ia = normaliza(raw); // veredicto nuevo y bueno: reemplaza
+      }
     }
     await dbStore.save(data);
     if (li < lotes.length - 1) await sleep(AI_DELAY_MS);
