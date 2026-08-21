@@ -139,6 +139,12 @@ function buildPDF(reporte, stream) {
         doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text(ia.resumen, 40, y, { width: pageWidth });
         y = doc.y + 2;
       }
+      if (ia.vsReferencia) {
+        if (y > doc.page.height - 70) { doc.addPage(); y = 50; }
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.ia).text('vs. referencia: ', 40, y, { continued: true });
+        doc.font('Helvetica').fontSize(9.5).fillColor('#444444').text(ia.vsReferencia, { width: pageWidth });
+        y = doc.y + 2;
+      }
       const lista = (titulo, arr) => {
         if (!arr || !arr.length) return;
         if (y > doc.page.height - 70) { doc.addPage(); y = 50; }

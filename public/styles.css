@@ -162,6 +162,8 @@ a { color: inherit; }
 .ia-box.ia-ok .ia-badge { color: var(--blue); }
 .ia-conf { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
 .ia-res { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.ia-vsref { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.ia-vsref b { color: var(--violet, #b98cff); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 .ia-list { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; }
 .ia-list b { color: var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 .ia-list ul { margin: 4px 0 0; padding-left: 18px; }

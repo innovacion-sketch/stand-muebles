@@ -175,6 +175,7 @@ function renderIA(ia) {
     <div class="ia-box ia-${ia.estado}">
       <div class="ia-head"><span class="ia-badge">◆ IA · ${etiqueta}</span><span class="ia-conf">${conf}</span></div>
       ${ia.resumen ? `<div class="ia-res">${escapeHtml(ia.resumen)}</div>` : ''}
+      ${ia.vsReferencia ? `<div class="ia-vsref"><b>vs. referencia:</b> ${escapeHtml(ia.vsReferencia)}</div>` : ''}
       ${lista('Hallazgos', ia.hallazgos)}
       ${lista('Faltantes', ia.faltantes)}
     </div>`;

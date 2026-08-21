@@ -13,6 +13,17 @@ let keyIndex = 0;
 const dbStore = require('./db');
 
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
+const REF_DIR = path.join(__dirname, 'public', 'referencias');
+
+// Devuelve la ruta de la foto de referencia de una sección (así debe verse),
+// si existe public/referencias/<clave>.<jpg|jpeg|png|webp>. Si no, null.
+function refImagen(key) {
+  for (const ext of ['jpg', 'jpeg', 'png', 'webp']) {
+    const p = path.join(REF_DIR, `${key}.${ext}`);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 //  CHECKLIST POR SECCIÓN — Edita aquí qué debe revisar la IA en cada parte.
@@ -56,14 +67,16 @@ function mimeDe(f) {
 function promptLote() {
   return `Eres un inspector de mantenimiento de stands de la marca Sidhe (plantillas personalizadas y escaneo de pisada).
 A continuación recibes varias secciones del stand. Cada una viene marcada con "[SECCION <clave>] <nombre>", su lista de "Qué revisar", y luego sus fotos.
+Algunas secciones incluyen primero una FOTO DE REFERENCIA (así debería verse esta parte del stand) y después las FOTOS REALES de la sucursal. Cuando exista referencia, COMPARA las fotos reales contra ella: verifica que estén los mismos elementos, bien acomodados, completos y en buen estado; señala lo que falte, esté distinto, desordenado o dañado respecto a la referencia. Si no hay referencia, evalúa solo con la lista de "Qué revisar".
 Analiza CADA sección y responde SOLO con un objeto JSON válido (en español, sin markdown, sin texto extra) con UNA entrada por cada <clave>, exactamente así:
-{"<clave>": {"estado":"ok|atencion|falla","hallazgos":["..."],"faltantes":["..."],"resumen":"...","confianza":0.0}, "<otra_clave>": { ... }}
+{"<clave>": {"estado":"ok|atencion|falla","hallazgos":["..."],"faltantes":["..."],"resumen":"...","confianza":0.0,"vsReferencia":"..."}, "<otra_clave>": { ... }}
 Reglas por sección:
-- "estado": "ok" si se ve bien; "atencion" si hay algo menor, dudoso o mala calidad de foto; "falla" si hay daño claro o no funciona.
+- "estado": "ok" si se ve bien y (si hay referencia) coincide con ella; "atencion" si hay algo menor, dudoso, mala calidad de foto o pequeñas diferencias con la referencia; "falla" si hay daño claro, no funciona o difiere mucho de la referencia.
 - "hallazgos": problemas o daños visibles (vacío si no hay).
-- "faltantes": elementos que deberían estar y no aparecen (vacío si no aplica).
+- "faltantes": elementos que deberían estar (según la referencia o la lista) y no aparecen (vacío si no aplica).
 - "resumen": una frase corta del estado.
 - "confianza": número de 0 a 1 según la claridad de la foto.
+- "vsReferencia": una frase comparando con la foto de referencia (qué coincide y qué no). Cadena vacía "" si esta sección no traía referencia.
 Usa EXACTAMENTE las claves indicadas entre corchetes como llaves del JSON. Incluye TODAS las secciones que recibas.`;
 }
 
@@ -81,6 +94,7 @@ function normaliza(p) {
     faltantes: Array.isArray(p && p.faltantes) ? p.faltantes.filter(Boolean).map(String) : [],
     resumen: (p && typeof p.resumen === 'string') ? p.resumen : '',
     confianza: (p && typeof p.confianza === 'number') ? Math.max(0, Math.min(1, p.confianza)) : null,
+    vsReferencia: (p && typeof p.vsReferencia === 'string') ? p.vsReferencia : '',
     analizadoEn: new Date().toISOString(),
     modelo: GEMINI_MODEL,
   };
@@ -134,7 +148,16 @@ async function geminiLote(rep, secciones) {
   let hayImagenes = false;
   for (const sec of secciones) {
     const check = CHECKLIST[sec.key] || `Elemento del stand: ${sec.label}. Revisa su estado general, daños o cosas faltantes.`;
-    parts.push({ text: `\n[SECCION ${sec.key}] ${sec.label}\nQué revisar: ${check}\nFotos:` });
+    parts.push({ text: `\n[SECCION ${sec.key}] ${sec.label}\nQué revisar: ${check}` });
+    // Foto de referencia (así debe verse), si existe, ANTES de las fotos reales.
+    const ref = refImagen(sec.key);
+    if (ref) {
+      parts.push({ text: 'FOTO DE REFERENCIA (así debería verse):' });
+      parts.push({ inline_data: { mime_type: mimeDe(ref), data: fs.readFileSync(ref).toString('base64') } });
+      parts.push({ text: 'FOTOS REALES de la sucursal (compáralas con la referencia):' });
+    } else {
+      parts.push({ text: 'Fotos reales de la sucursal:' });
+    }
     for (const f of (rep.secciones[sec.key].fotos || []).slice(0, 8)) {
       const p = path.join(UPLOAD_DIR, f);
       if (!fs.existsSync(p)) continue;
@@ -170,7 +193,7 @@ async function analizarReporte(reportId) {
   const lotes = [];
   let grupo = [], imgs = 0;
   for (const s of seccionesConFotos) {
-    const n = Math.min(rep.secciones[s.key].fotos.length, 8);
+    const n = Math.min(rep.secciones[s.key].fotos.length, 8) + (refImagen(s.key) ? 1 : 0); // +1 por la referencia
     if (grupo.length && imgs + n > MAX_IMG_LOTE) { lotes.push(grupo); grupo = []; imgs = 0; }
     grupo.push(s); imgs += n;
   }
