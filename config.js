@@ -58,8 +58,6 @@ const SECCIONES = [
   { key: 'puerta',         grupo: 'Mobiliario',   label: 'Puerta',                             estado: true, estadoLabel: '¿La puerta está en buen estado?',          fotos: true, minFotos: 1 },
   { key: 'silla',          grupo: 'Mobiliario',   label: 'Silla del cliente',                  estado: true, estadoLabel: '¿La silla está en buen estado?',           fotos: true, minFotos: 1 },
 
-  { key: 'modem',          grupo: 'Conectividad', label: 'Módem',                              estado: true, estadoLabel: '¿El módem funciona correctamente?',        fotos: true, minFotos: 1 },
-
   { key: 'pantallas',      grupo: 'Equipo',       label: 'Pantallas (si aplica)',              estado: true, estadoLabel: '¿Las pantallas funcionan correctamente?',  fotos: true, minFotos: 0, opcional: true },
   { key: 'tablets',        grupo: 'Equipo',       label: 'Tablets (si tienen)',                estado: true, estadoLabel: '¿Las tablets funcionan correctamente?',    fotos: true, minFotos: 0, opcional: true, hint: 'Una foto de cada tablet con la que cuenten' },
   { key: 'baropodometro',  grupo: 'Equipo',       label: 'Baropodómetro',                      estado: true, estadoLabel: '¿El baropodómetro funciona correctamente?', fotos: true, minFotos: 1 },

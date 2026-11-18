@@ -35,7 +35,6 @@ const CHECKLIST = {
   barandal_lado2: 'Barandal del stand. Revisa: dobleces, tornillos flojos, óxido, vidrio o acrílico roto/rayado, firmeza.',
   puerta:         'Puerta del mueble. Revisa: bisagras, cerradura, que no esté dañada ni desalineada.',
   silla:          'Silla del cliente. Revisa: tapizado sin roturas, base y ruedas completas, que se vea estable y limpia.',
-  modem:          'Módem o router. Revisa: que se vea encendido (luces), cables conectados, sin daños.',
   pantallas:      'Pantalla o monitor de exhibición. Revisa: encendida, sin grietas, mostrando contenido.',
   tablets:        'Tablet(s). Revisa: encendida, pantalla sin grietas, funcionando, sin daños.',
   baropodometro:  'Baropodómetro Sidhe (plataforma circular con anillo iluminado y tapete de calibración). Revisa: cristal/anillo sin grietas, tapete presente y limpio, que se vea encendido.',
