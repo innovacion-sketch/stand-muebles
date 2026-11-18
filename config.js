@@ -94,9 +94,15 @@ module.exports = {
   SUCURSALES,
   SECCIONES,
 
-  // Contraseña del panel de administración.
+  // Contraseña del panel de administración (compartida por los correos permitidos).
   // Cámbiala aquí o, mejor, define la variable de entorno ADMIN_PASSWORD en EasyPanel.
-  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'cambia-esta-clave',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'Sidhe2026',
+
+  // Correos autorizados a entrar al panel admin (en minúsculas). El acceso es
+  // correo + contraseña: el correo debe estar en esta lista y la contraseña ser ADMIN_PASSWORD.
+  // Se puede sobreescribir con la variable de entorno ADMIN_USERS (correos separados por coma).
+  ADMIN_USUARIOS: (process.env.ADMIN_USERS || 'innovacion@sidhegroup.com, manuel@sidhegroup.com')
+    .split(/[,\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean),
 
   // Secreto para las sesiones (define SESSION_SECRET en EasyPanel para producción).
   SESSION_SECRET: process.env.SESSION_SECRET || 'stand-muebles-secret-cambiame',

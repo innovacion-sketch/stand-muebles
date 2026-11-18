@@ -32,9 +32,10 @@ async function mostrarPanel() {
   await cargarHistorial();
 }
 async function login() {
+  const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const res = await fetch('/api/admin/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }),
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }),
   });
   if (res.ok) { document.getElementById('login-error').classList.add('hidden'); mostrarPanel(); }
   else document.getElementById('login-error').classList.remove('hidden');
@@ -281,6 +282,7 @@ function escapeHtml(s) {
 }
 
 document.getElementById('btn-login').addEventListener('click', login);
+document.getElementById('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 document.getElementById('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 document.getElementById('modal-reanalizar').addEventListener('click', async (e) => {
   if (!REPORTE_ACTUAL) return;

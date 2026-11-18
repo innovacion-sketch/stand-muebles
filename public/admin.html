@@ -33,13 +33,17 @@
         <div class="label" style="margin-bottom:10px">Acceso restringido</div>
         <h1 style="font-size:24px;margin-bottom:14px">Panel de administración</h1>
         <label class="field">
+          <span>Correo</span>
+          <input type="email" id="email" placeholder="tucorreo@sidhegroup.com" autocomplete="username" autocapitalize="none" spellcheck="false" />
+        </label>
+        <label class="field">
           <span>Contraseña</span>
           <input type="password" id="password" placeholder="Ingresa la contraseña" autocomplete="current-password" />
         </label>
         <button id="btn-login" class="btn btn-primary btn-lg btn-block">Entrar</button>
         <div id="login-error" class="error-msg hidden">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
-          Contraseña incorrecta
+          Correo o contraseña incorrectos
         </div>
       </div>
     </section>

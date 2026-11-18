@@ -6,7 +6,7 @@ const session = require('express-session');
 const multer = require('multer');
 
 const config = require('./config');
-const { REGIONES, SUCURSALES, SECCIONES, DATA_DIR, ADMIN_PASSWORD, SESSION_SECRET, PORT } = config;
+const { REGIONES, SUCURSALES, SECCIONES, DATA_DIR, ADMIN_PASSWORD, ADMIN_USUARIOS, SESSION_SECRET, PORT } = config;
 
 // Región a la que pertenece cada sucursal (para el panel).
 const REGION_DE = {};
@@ -195,12 +195,15 @@ function requireAdmin(req, res, next) {
 }
 
 app.post('/api/admin/login', (req, res) => {
+  const email = ((req.body && req.body.email) || '').trim().toLowerCase();
   const pass = (req.body && req.body.password) || '';
-  if (pass && pass === ADMIN_PASSWORD) {
+  const correoPermitido = ADMIN_USUARIOS.includes(email);
+  if (correoPermitido && pass && pass === ADMIN_PASSWORD) {
     req.session.admin = true;
-    return res.json({ ok: true });
+    req.session.adminEmail = email;
+    return res.json({ ok: true, email });
   }
-  return res.status(401).json({ error: 'Contraseña incorrecta' });
+  return res.status(401).json({ error: 'Correo o contraseña incorrectos' });
 });
 
 app.post('/api/admin/logout', (req, res) => {
@@ -208,7 +211,8 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 app.get('/api/admin/me', (req, res) => {
-  res.json({ admin: !!(req.session && req.session.admin) });
+  const admin = !!(req.session && req.session.admin);
+  res.json({ admin, email: admin ? (req.session.adminEmail || '') : '' });
 });
 
 // ============================ RUTAS ADMIN ============================
@@ -377,8 +381,9 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Stand Muebles corriendo en http://localhost:${PORT}`);
   console.log(`Datos en: ${DATA_DIR}`);
-  if (ADMIN_PASSWORD === 'cambia-esta-clave') {
-    console.warn('⚠  Estás usando la contraseña de administrador por defecto. Define ADMIN_PASSWORD.');
+  console.log(`Admin: ${ADMIN_USUARIOS.length} correo(s) autorizado(s): ${ADMIN_USUARIOS.join(', ')}`);
+  if (ADMIN_PASSWORD === 'Sidhe2026') {
+    console.warn('⚠  Usando la contraseña de admin por defecto (Sidhe2026). Define ADMIN_PASSWORD en EasyPanel para cambiarla.');
   }
   ai.startupPending();
 });
